@@ -39,6 +39,11 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  hive: ^2.0.4
+  hive_flutter: ^1.1.0
+  path_provider: ^2.0.7
+  hive_generator: ^1.1.1 # use a versão mais recente compatível
+  build_runner: ^2.1.5 # use a versão mais recente compatível
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

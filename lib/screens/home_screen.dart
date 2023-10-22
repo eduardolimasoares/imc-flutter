@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:imc/models/calculadora_imc_model.dart'; 
-import 'package:imc/widgets/imc_form.dart'; 
+import 'package:hive/hive.dart';
+import 'package:imc/models/imc_record.dart';
+import 'package:imc/screens/settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -8,34 +9,86 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _imcResultController = TextEditingController();
+  late TextEditingController _weightController;
+  final _formKey = GlobalKey<FormState>();
+  double? _imc;
+  Box<double>? _settingsBox;
+  Box<IMCRecord>? _recordsBox;
 
-  void _calculateIMC(double weight, double height) {
-    final imc = CalculadoraIMCModel.calculateIMC(weight, height);
-    _imcResultController.text = 'Seu IMC é ${imc.toStringAsFixed(2)}';
+  @override
+  void initState() {
+    super.initState();
+    _weightController = TextEditingController();
+    _settingsBox = Hive.box<double>('settings');
+    _recordsBox = Hive.box<IMCRecord>('records');
+  }
+
+  @override
+  void dispose() {
+    Hive.close();
+    super.dispose();
+  }
+
+  void _calculateAndSaveIMC() {
+    if (_formKey.currentState!.validate()) {
+      final double height = _settingsBox!.get('height') ?? 0;
+      final double weight = double.parse(_weightController.text);
+      final double imc = weight / (height * height);
+
+      setState(() {
+        _imc = imc;
+      });
+
+      final imcRecord = IMCRecord(weight: weight, imc: imc);
+      _recordsBox!.add(imcRecord);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Calculadora IMC'),
+        title: Text('Calculadora de IMC'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SettingsScreen()),
+              );
+            },
+          ),
+        ],
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
+      body: Form(
+        key: _formKey,
         child: Column(
           children: [
-            IMCForm(onCalculate: _calculateIMC),
             TextFormField(
-              controller: _imcResultController,
-              readOnly: true,
+              controller: _weightController,
               decoration: InputDecoration(
-                labelText: 'Resultado',
+                labelText: 'Seu peso (kg)',
               ),
+              keyboardType: TextInputType.number,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Por favor, insira seu peso';
+                }
+                return null;
+              },
             ),
+            ElevatedButton(
+              onPressed: _calculateAndSaveIMC,
+              child: Text('Calcular'),
+            ),
+            if (_imc != null) Text('Seu IMC é $_imc'),
+            // Aqui você pode adicionar um widget para exibir todos os registros de IMC
           ],
         ),
       ),
     );
   }
 }
+
+// Continue com a implementação da tela de configurações e a lógica associada para salvar e recuperar a altura
